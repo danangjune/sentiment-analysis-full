@@ -8,8 +8,8 @@ if not os.path.exists("../data"):
 
 # Konfigurasi
 data_file = "../data/tweets_walikota_kediri.csv"
-search_keyword = "walikota kediri since:2024-01-27 until:2025-02-27 lang:id"  # Cari tweet terbaru
-limit = 50 # Batasi jumlah tweet agar cepat
+search_keyword = "walikota kediri since:2024-10-27 until:2025-02-27 lang:id"  # Cari tweet terbaru
+limit = 100 # Batasi jumlah tweet agar cepat
 token = "6d0094544ee48e738c7ff314f88ee2a899e1e8e0"  # Token dari cookies
 
 # Eksekusi tweet-harvest

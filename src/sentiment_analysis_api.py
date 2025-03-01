@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 import pandas as pd
 import re
 import matplotlib.pyplot as plt
@@ -14,12 +14,12 @@ app = Flask(__name__)
 CORS(app)  # Agar bisa diakses dari frontend (React)
 
 # Load dataset
-CSV_PATH = 'data/tweets_walikota_kediri.csv'  # Pastikan file ini ada
+CSV_PATH = 'data/tweets_walikota_kediri.csv' 
 try:
-    df = pd.read_csv(CSV_PATH)  
+    df = pd.read_csv(CSV_PATH, parse_dates=['created_at']) 
 except FileNotFoundError:
     print(f"Error: File '{CSV_PATH}' tidak ditemukan!")
-    df = pd.DataFrame(columns=["full_text"])  # Buat DataFrame kosong jika tidak ada file
+    df = pd.DataFrame(columns=["full_text", "created_at"]) 
 
 # Preprocessing: Membersihkan teks
 def clean_text(text):
@@ -32,12 +32,12 @@ def clean_text(text):
 
 df['clean_text'] = df['full_text'].astype(str).apply(clean_text)
 
-# Translasi ke Bahasa Inggris sebelum Sentimen
+# Translate ke Bahasa Inggris sebelum Sentimen
 def translate_text(text):
     try:
         return GoogleTranslator(source='id', target='en').translate(text)
     except:
-        return text  # Jika error, tetap gunakan teks asli
+        return text 
 
 df['translated_text'] = df['clean_text'].apply(translate_text)
 
@@ -55,18 +55,42 @@ def get_sentiment(text):
 
 df['sentiment'] = df['translated_text'].apply(get_sentiment)
 
-# Hitung jumlah masing-masing sentimen
+# Hitung jumlah masing-masing sentimen untuk diagram donat
 sentiment_counts = df['sentiment'].value_counts().to_dict()
 
-# Endpoint API: Cek apakah API berjalan
-@app.route('/api/sentiment', methods=['GET', 'POST'])
+# Hitung tren sentimen per tanggal
+df['date'] = df['created_at'].dt.date  # Ambil hanya tanggal
+sentiment_trend = df.groupby(['date', 'sentiment']).size().unstack().fillna(0)
+
+# ---------------------------- API ENDPOINTS ----------------------------
+
+# Cek apakah API berjalan
+@app.route('/api/sentiment', methods=['GET'])
 def sentiment_analysis():
     return jsonify({"message": "API Sentimen Berjalan"})
 
-# Endpoint API untuk data sentimen
+# Endpoint untuk data diagram donat (Total Sentimen)
 @app.route('/api/sentiment/data', methods=['GET'])
 def get_sentiment_data():
     return jsonify(sentiment_counts)
 
+# Endpoint untuk tren sentimen (Time Series)
+@app.route('/api/sentiment/trend', methods=['GET'])
+def get_sentiment_trend():
+    # Pastikan kolom created_at sudah dalam format datetime
+    df['created_at'] = pd.to_datetime(df['created_at'])
+
+    # Ambil hanya tanggal dari created_at
+    df['date'] = df['created_at'].dt.date  
+
+    # Kelompokkan sentimen berdasarkan tanggal
+    sentiment_trend = df.groupby(['date', 'sentiment']).size().unstack(fill_value=0)
+
+    # Konversi indeks (tanggal) ke string agar bisa di-serialize ke JSON
+    trend_data = {str(date): row.to_dict() for date, row in sentiment_trend.iterrows()}
+
+    return jsonify(trend_data)
+
+# Jalankan API
 if __name__ == '__main__':
     app.run(debug=True)
