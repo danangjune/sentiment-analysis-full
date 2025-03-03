@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)  # Agar API bisa diakses dari frontend
 
 # Load dataset dari CSV
-CSV_PATH = 'data/tweets_walikota_kediri.csv'
+CSV_PATH = 'tweets-data/data/tweets_walikota_kediri.csv'
 try:
     df = pd.read_csv(CSV_PATH, parse_dates=['created_at'])
 except FileNotFoundError:
@@ -68,7 +68,7 @@ sentiment_trend = df.groupby(['date', 'sentiment']).size().unstack().fillna(0)
 df['engagement'] = df['favorite_count'] + df['retweet_count']
 
 # Ambil tweet dengan engagement tertinggi (top 5)
-top_tweets = df.nlargest(5, 'engagement')[['conversation_id_str', 'created_at', 'full_text', 'favorite_count', 'user_id_str', 'username', 'image_url', 'retweet_count', 'tweet_url']].to_dict(orient='records')
+top_tweets = df.nlargest(10, 'engagement')[['conversation_id_str', 'created_at', 'full_text', 'favorite_count', 'user_id_str', 'username', 'image_url', 'retweet_count', 'tweet_url']].to_dict(orient='records')
 
 # Hitung total tweet dan rata-rata engagement
 total_tweets = len(df)
@@ -119,7 +119,7 @@ def get_summary():
         "timeSeriesData": time_series_data,
         "topTweets": top_tweets,
         "totalTweets": safe_int(total_tweets),
-        "totalEngagement": safe_int(total_engagement),
+        "totalEngagement": int(total_engagement),
         "averageEngagement": safe_int(average_engagement)
     }
 
@@ -130,3 +130,6 @@ def get_summary():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+output_file = 'data/hasil_sentimen.csv'
+df.to_csv(output_file, index=False)

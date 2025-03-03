@@ -1,25 +1,30 @@
 import os
-import pandas as pd
 import subprocess
 
-# Pastikan folder data ada
-if not os.path.exists("../data"):
-    os.makedirs("../data")
+# Pastikan folder "data" ada
+data_dir = "data"  
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
 
-# Konfigurasi
-data_file = "../data/tweets_walikota_kediri.csv"
-search_keyword = "walikota kediri since:2024-10-27 until:2025-02-27 lang:id"  # Cari tweet terbaru
-limit = 100 # Batasi jumlah tweet agar cepat
-token = "6d0094544ee48e738c7ff314f88ee2a899e1e8e0"  # Token dari cookies
+# Konfigurasi path output
+data_file = os.path.join(data_dir, "tweets_walikota_kediri.csv")
 
-# Eksekusi tweet-harvest
-cmd = f'npx --yes tweet-harvest@2.6.1 -o "{data_file}" -s "{search_keyword}" -l {limit} --token "{token}"'
+# Gunakan format path Unix-style untuk kompatibilitas dengan Node.js
+data_file = data_file.replace("\\", "/")
+
+# Konfigurasi parameter
+search_keyword = "kota kediri since:2024-12-03 until:2025-03-03 lang:id"
+limit = 200
+token = "6d0094544ee48e738c7ff314f88ee2a899e1e8e0"
+
+# Path ke script TypeScript
+script_path = os.path.abspath("tweet-harvest-main/src/bin.ts")
+script_path = script_path.replace("\\", "/")  # Gunakan format yang aman
+
+# Cek path sebelum dieksekusi
+print(f"Script path: {script_path}")
+print(f"Output file path: {data_file}")
+
+# Jalankan `tweet-harvest`
+cmd = f'npx ts-node "{script_path}" -o "{data_file}" -s "{search_keyword}" -l {limit} --token "{token}"'
 subprocess.run(cmd, shell=True, check=True)
-
-# Baca hasil crawling
-data_file = os.path.abspath("data/tweets_walikota_kediri.csv")
-df = pd.read_csv(data_file, sep=",")
-
-# Tampilkan info + 5 tweet pertama
-print(df.info())
-print(df.head(5))  # Cuma tampilkan 5 tweet pertama
