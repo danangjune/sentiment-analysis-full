@@ -7,6 +7,8 @@ from deep_translator import GoogleTranslator
 from flask_cors import CORS
 import math
 import numpy as np
+from flask import request
+import subprocess
 
 # Download lexicon untuk analisis sentimen
 nltk.download('vader_lexicon')
@@ -67,7 +69,7 @@ sentiment_trend = df.groupby(['date', 'sentiment']).size().unstack().fillna(0)
 # Hitung total engagement (retweet + favorite)
 df['engagement'] = df['favorite_count'] + df['retweet_count']
 
-# Ambil tweet dengan engagement tertinggi (top 5)
+# Ambil tweet dengan engagement tertinggi (top 10)
 top_tweets = df.nlargest(10, 'engagement')[['conversation_id_str', 'created_at', 'full_text', 'favorite_count', 'user_id_str', 'username', 'image_url', 'retweet_count', 'tweet_url']].to_dict(orient='records')
 
 # Hitung total tweet dan rata-rata engagement
@@ -90,6 +92,15 @@ time_series_data = [
     }
     for date, row in sentiment_trend.iterrows()
 ]
+
+@app.route("/api/crawl", methods=["POST"])
+def trigger_crawler():
+    try:
+        # Jalankan script crawler sebagai subprocess
+        subprocess.Popen(["python", "crawler.py"])  # Sesuaikan dengan nama file crawler
+        return jsonify({"message": "Crawling started"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/sentiment/summary', methods=['GET'])
 def get_summary():
@@ -130,6 +141,3 @@ def get_summary():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-output_file = 'data/hasil_sentimen.csv'
-df.to_csv(output_file, index=False)
